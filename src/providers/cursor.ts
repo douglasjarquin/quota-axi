@@ -380,19 +380,15 @@ async function fetchCursorUsage(credentials: CursorCredentials): Promise<{
     postDashboardRpc(credentials.accessToken, "GetSandUsageStatus"),
   ]);
   if (usageResult.status === "rejected") {
-    const error = usageResult.reason;
-    if (error instanceof CursorAuthError || error instanceof RateLimitError) {
-      throw error;
-    }
+    throw usageResult.reason;
   }
   const quota = normalizeCursorUsage(
-    usageResult.status === "fulfilled" ? usageResult.value : undefined,
+    usageResult.value,
     planResult.status === "fulfilled" ? planResult.value : undefined,
     credentials,
     sandResult.status === "fulfilled" ? sandResult.value : undefined,
   );
   if (!quota) {
-    if (usageResult.status === "rejected") throw usageResult.reason;
     throw new Error("Cursor quota unavailable");
   }
   return quota;

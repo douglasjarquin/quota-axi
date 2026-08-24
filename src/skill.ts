@@ -74,4 +74,3 @@ For current instructions, output shape, and field semantics, run the CLI (no glo
 - \`npx -y quota-axi --json\` / \`npx -y quota-axi --full\` - current output shape and field semantics
 `;
 }
-

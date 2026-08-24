@@ -289,6 +289,39 @@ describe("Cursor credential-state reporting", () => {
     ]);
   });
 
+  it("fails the provider when GetCurrentPeriodUsage errors, even though GetSandUsageStatus succeeds", async () => {
+    vi.doMock("../../src/lib/process.js", () => ({
+      commandExists: vi.fn(async () => true),
+      execFileText: vi.fn(async (_command: string, args: string[]) => {
+        const query = args.at(-1) ?? "";
+        if (query.includes("cursorAuth/accessToken")) return '"valid-token"';
+        return "";
+      }),
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown) => {
+        if (String(url).includes("GetCurrentPeriodUsage")) {
+          return new Response("{}", { status: 500 });
+        }
+        if (String(url).includes("GetSandUsageStatus")) {
+          return new Response(JSON.stringify({ usagePercent: 7 }), {
+            status: 200,
+          });
+        }
+        return new Response(JSON.stringify({ planInfo: {} }), {
+          status: 200,
+        });
+      }),
+    );
+
+    const { fetchQuota } = await import("../../src/providers/cursor.js");
+    const result = await fetchQuota({ allowKeychainPrompt: false });
+
+    expect(result.state.status).not.toBe("fresh");
+    expect(result.windows).toEqual([]);
+  });
+
   it("resolves the Linux state database under XDG config home", async () => {
     delete process.env.CURSOR_STATE_DB;
     const xdgConfigHome = join(tempDir!, "xdg-config");
